@@ -1,0 +1,64 @@
+{
+  "name": "lithium/video-logs",
+  "type": "library",
+  "description": "Reusable video logs module for Lithium client apps — models, storage provider, controllers, and jobs.",
+  "keywords": [
+    "laravel",
+    "video-logs",
+    "lithium",
+    "s3",
+    "mediaconvert"
+  ],
+  "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "aws/aws-php-sns-message-validator": "^1.10",
+        "aws/aws-sdk-php": "^3.0",
+    "illuminate/bus": "^12.0",
+    "illuminate/database": "^12.0",
+    "illuminate/http": "^12.0",
+    "illuminate/support": "^12.0",
+    "league/flysystem-aws-s3-v3": "^3.0",
+    "spatie/laravel-package-tools": "^1.16"
+  },
+  "require-dev": {
+    "larastan/larastan": "^3.0",
+    "laravel/pint": "^1.0",
+    "mockery/mockery": "^1.6",
+    "orchestra/testbench": "^10.0",
+    "pestphp/pest": "^4.0",
+    "pestphp/pest-plugin-laravel": "^4.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Lithium\\VideoLogs\\": "src/",
+      "Lithium\\VideoLogs\\Database\\Factories\\": "database/factories/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Lithium\\VideoLogs\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Lithium\\VideoLogs\\VideoLogsServiceProvider"
+      ]
+    }
+  },
+  "scripts": {
+    "test": "pest",
+    "analyse": "phpstan analyse",
+    "format": "pint"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true,
+      "php-http/discovery": true
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
