@@ -31,6 +31,13 @@ return [
             'bucket' => env('VIDEO_LOGS_S3_BUCKET'),
             'region' => env('VIDEO_LOGS_S3_REGION', env('AWS_DEFAULT_REGION', 'us-east-1')),
 
+            // Dedicated credentials for the video-logs IAM user. Prefer setting
+            // VIDEO_LOGS_S3_KEY / VIDEO_LOGS_S3_SECRET so video logs authenticate
+            // as their own least-privilege user, leaving the host app's
+            // AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (used for its general
+            // file/image bucket) untouched. Falls back to the standard AWS vars
+            // for single-user setups; when neither is set the SDK uses its
+            // default credential chain (e.g. an instance/task role).
             'key' => env('VIDEO_LOGS_S3_KEY', env('AWS_ACCESS_KEY_ID')),
             'secret' => env('VIDEO_LOGS_S3_SECRET', env('AWS_SECRET_ACCESS_KEY')),
 

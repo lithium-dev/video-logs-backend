@@ -87,10 +87,7 @@ class VideoLogsServiceProvider extends PackageServiceProvider
      */
     private function makeS3Client(array $config): S3Client
     {
-        return new S3Client([
-            'region' => $config['region'] ?? 'us-east-1',
-            'version' => 'latest',
-        ]);
+        return new S3Client($this->awsClientArgs($config));
     }
 
     /**
@@ -98,15 +95,43 @@ class VideoLogsServiceProvider extends PackageServiceProvider
      */
     private function makeMediaConvertClient(array $config): MediaConvertClient
     {
-        $args = [
-            'region' => $config['region'] ?? 'us-east-1',
-            'version' => 'latest',
-        ];
+        $args = $this->awsClientArgs($config);
 
         if (! empty($config['mediaconvert_endpoint'])) {
             $args['endpoint'] = $config['mediaconvert_endpoint'];
         }
 
         return new MediaConvertClient($args);
+    }
+
+    /**
+     * Base AWS SDK client arguments shared by the S3 and MediaConvert clients.
+     *
+     * When dedicated video-logs credentials are configured
+     * (VIDEO_LOGS_S3_KEY / VIDEO_LOGS_S3_SECRET) they are passed explicitly so
+     * the module authenticates as its own least-privilege IAM user, kept
+     * separate from the host app's AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+     * used for general file/image storage. When absent, the args omit
+     * credentials entirely and the SDK falls back to the default credential
+     * chain (env vars, shared profile, or an instance/task role in production).
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    private function awsClientArgs(array $config): array
+    {
+        $args = [
+            'region' => $config['region'] ?? 'us-east-1',
+            'version' => 'latest',
+        ];
+
+        if (! empty($config['key']) && ! empty($config['secret'])) {
+            $args['credentials'] = [
+                'key' => $config['key'],
+                'secret' => $config['secret'],
+            ];
+        }
+
+        return $args;
     }
 }
