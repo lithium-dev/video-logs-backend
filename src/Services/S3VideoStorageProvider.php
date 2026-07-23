@@ -682,7 +682,15 @@ class S3VideoStorageProvider implements VideoStorageProvider
                         'Container' => 'MP4',
                     ],
                     'VideoDescription' => [
-                        'Width' => 1280,
+                        // Honor the input's rotation metadata (e.g. iPhone videos
+                        // recorded upright carry a 90° display matrix). Without
+                        // AUTO, MediaConvert defaults to DEGREE_0 and bakes the
+                        // output un-rotated, producing sideways playback.
+                        'Rotate' => 'AUTO',
+                        // Specify only the height and let MediaConvert compute the
+                        // width to preserve the source aspect ratio (after
+                        // rotation). Hardcoding both dimensions would squish any
+                        // non-16:9 source, e.g. portrait phone recordings.
                         'Height' => 720,
                         'CodecSettings' => [
                             'Codec' => 'H_264',
@@ -741,6 +749,9 @@ class S3VideoStorageProvider implements VideoStorageProvider
                         'Container' => 'RAW',
                     ],
                     'VideoDescription' => [
+                        // Match the playback output so the poster thumbnail is
+                        // captured with the same (corrected) orientation.
+                        'Rotate' => 'AUTO',
                         'CodecSettings' => [
                             'Codec' => 'FRAME_CAPTURE',
                             'FrameCaptureSettings' => [
