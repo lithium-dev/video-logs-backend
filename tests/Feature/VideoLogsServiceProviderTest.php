@@ -61,7 +61,33 @@ it('omits explicit credentials so the SDK uses its default chain when none are c
     expect($args['region'])->toBe('us-east-1');
 });
 
-it('omits explicit credentials when only one of key/secret is present', function () {
+it('falls back to the AWS_* pair as a matched set when the dedicated pair is incomplete', function () {
+    // Only the dedicated key is set (secret missing). The credentials must NOT
+    // mix the dedicated key with the AWS_* secret — both come from AWS_* instead,
+    // otherwise the mismatched pair signs every request with SignatureDoesNotMatch.
+    $args = awsClientArgsFor([
+        'key' => 'video-logs-key',
+        'secret' => null,
+        'fallback_key' => 'aws-key',
+        'fallback_secret' => 'aws-secret',
+    ]);
+
+    expect($args['credentials'])->toBe(['key' => 'aws-key', 'secret' => 'aws-secret']);
+});
+
+it('prefers the dedicated pair over the AWS_* fallback when both are complete', function () {
+    $args = awsClientArgsFor([
+        'key' => 'video-logs-key',
+        'secret' => 'video-logs-secret',
+        'fallback_key' => 'aws-key',
+        'fallback_secret' => 'aws-secret',
+    ]);
+
+    expect($args['credentials'])->toBe(['key' => 'video-logs-key', 'secret' => 'video-logs-secret']);
+});
+
+it('omits explicit credentials when neither a dedicated nor a fallback pair is complete', function () {
     expect(awsClientArgsFor(['key' => 'only-key', 'secret' => null]))->not->toHaveKey('credentials');
     expect(awsClientArgsFor(['key' => null, 'secret' => 'only-secret']))->not->toHaveKey('credentials');
+    expect(awsClientArgsFor(['fallback_key' => 'aws-key', 'fallback_secret' => null]))->not->toHaveKey('credentials');
 });
