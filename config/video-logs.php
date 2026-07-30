@@ -31,15 +31,25 @@ return [
             'bucket' => env('VIDEO_LOGS_S3_BUCKET'),
             'region' => env('VIDEO_LOGS_S3_REGION', env('AWS_DEFAULT_REGION', 'us-east-1')),
 
-            // Dedicated credentials for the video-logs IAM user. Prefer setting
-            // VIDEO_LOGS_S3_KEY / VIDEO_LOGS_S3_SECRET so video logs authenticate
-            // as their own least-privilege user, leaving the host app's
-            // AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (used for its general
-            // file/image bucket) untouched. Falls back to the standard AWS vars
-            // for single-user setups; when neither is set the SDK uses its
-            // default credential chain (e.g. an instance/task role).
-            'key' => env('VIDEO_LOGS_S3_KEY', env('AWS_ACCESS_KEY_ID')),
-            'secret' => env('VIDEO_LOGS_S3_SECRET', env('AWS_SECRET_ACCESS_KEY')),
+            // Dedicated credentials for the video-logs IAM user. Set BOTH
+            // VIDEO_LOGS_S3_KEY and VIDEO_LOGS_S3_SECRET so video logs
+            // authenticate as their own least-privilege user, leaving the host
+            // app's AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (used for its
+            // general file/image bucket) untouched.
+            //
+            // The pair is resolved atomically in
+            // VideoLogsServiceProvider::resolveCredentials(): the dedicated pair
+            // is used only when BOTH are present; otherwise BOTH fall back to the
+            // AWS_* pair (single-user setups); when neither pair is complete the
+            // SDK default credential chain (e.g. an instance/task role) takes
+            // over. Never set only one of the dedicated vars — mixing a key from
+            // one IAM user with a secret from another is a guaranteed
+            // SignatureDoesNotMatch.
+            'key' => env('VIDEO_LOGS_S3_KEY'),
+            'secret' => env('VIDEO_LOGS_S3_SECRET'),
+
+            'fallback_key' => env('AWS_ACCESS_KEY_ID'),
+            'fallback_secret' => env('AWS_SECRET_ACCESS_KEY'),
 
             'signed_url_ttl' => (int) env('VIDEO_LOGS_SIGNED_URL_TTL', 3600),
             'upload_ttl' => (int) env('VIDEO_LOGS_UPLOAD_TTL', 3600),

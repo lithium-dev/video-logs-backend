@@ -107,13 +107,11 @@ class VideoLogsServiceProvider extends PackageServiceProvider
     /**
      * Base AWS SDK client arguments shared by the S3 and MediaConvert clients.
      *
-     * When dedicated video-logs credentials are configured
-     * (VIDEO_LOGS_S3_KEY / VIDEO_LOGS_S3_SECRET) they are passed explicitly so
+     * When a complete credential pair is configured it is passed explicitly so
      * the module authenticates as its own least-privilege IAM user, kept
-     * separate from the host app's AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
-     * used for general file/image storage. When absent, the args omit
-     * credentials entirely and the SDK falls back to the default credential
-     * chain (env vars, shared profile, or an instance/task role in production).
+     * separate from the host app's general file/image storage. When absent, the
+     * args omit credentials entirely and the SDK falls back to the default
+     * credential chain (env vars, shared profile, or an instance/task role).
      *
      * @param  array<string, mixed>  $config
      * @return array<string, mixed>
@@ -125,13 +123,44 @@ class VideoLogsServiceProvider extends PackageServiceProvider
             'version' => 'latest',
         ];
 
+        $credentials = $this->resolveCredentials($config);
+        if ($credentials !== null) {
+            $args['credentials'] = $credentials;
+        }
+
+        return $args;
+    }
+
+    /**
+     * Resolve an AWS credential pair atomically.
+     *
+     * The dedicated video-logs pair (VIDEO_LOGS_S3_KEY / VIDEO_LOGS_S3_SECRET)
+     * is used only when BOTH are present; otherwise BOTH fall back to the host
+     * app's AWS_* pair (single-user setups). This guarantees the key and secret
+     * always originate from the SAME IAM user — pairing a key from one user with
+     * a secret from another produces a SignatureDoesNotMatch on every request.
+     * Returns null when no complete pair is configured so the SDK default
+     * credential chain takes over.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array{key: string, secret: string}|null
+     */
+    private function resolveCredentials(array $config): ?array
+    {
         if (! empty($config['key']) && ! empty($config['secret'])) {
-            $args['credentials'] = [
+            return [
                 'key' => $config['key'],
                 'secret' => $config['secret'],
             ];
         }
 
-        return $args;
+        if (! empty($config['fallback_key']) && ! empty($config['fallback_secret'])) {
+            return [
+                'key' => $config['fallback_key'],
+                'secret' => $config['fallback_secret'],
+            ];
+        }
+
+        return null;
     }
 }
