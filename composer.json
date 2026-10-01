@@ -11,13 +11,13 @@
   ],
   "license": "proprietary",
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
         "aws/aws-php-sns-message-validator": "^1.10",
         "aws/aws-sdk-php": "^3.0",
-    "illuminate/bus": "^12.0",
-    "illuminate/database": "^12.0",
-    "illuminate/http": "^12.0",
-    "illuminate/support": "^12.0",
+    "illuminate/bus": "^13.0",
+    "illuminate/database": "^13.0",
+    "illuminate/http": "^13.0",
+    "illuminate/support": "^13.0",
     "league/flysystem-aws-s3-v3": "^3.0",
     "spatie/laravel-package-tools": "^1.16"
   },
@@ -25,7 +25,7 @@
     "larastan/larastan": "^3.0",
     "laravel/pint": "^1.0",
     "mockery/mockery": "^1.6",
-    "orchestra/testbench": "^10.0",
+    "orchestra/testbench": "^11.0",
     "pestphp/pest": "^4.0",
     "pestphp/pest-plugin-laravel": "^4.0"
   },
