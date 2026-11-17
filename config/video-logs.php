@@ -158,11 +158,16 @@ return [
     | subquery on index and the relationship on show) without the package
     | hard-coding the host application's user model.
     |
+    | Default assumes a modern Laravel layout (App\Models\User). Older apps
+    | that still keep models under App\ (e.g. App\User) must override this —
+    | set VIDEO_LOGS_USER_MODEL in .env, or publish this config and change
+    | "model" (php artisan vendor:publish --tag=video-logs-config).
+    |
     */
 
     'user' => [
-        'model' => 'App\\Models\\User',
-        'name_column' => 'name',
+        'model' => env('VIDEO_LOGS_USER_MODEL', 'App\\Models\\User'),
+        'name_column' => env('VIDEO_LOGS_USER_NAME_COLUMN', 'name'),
     ],
 
     /*
