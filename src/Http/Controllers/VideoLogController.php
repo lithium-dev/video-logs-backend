@@ -18,6 +18,7 @@ use Lithium\VideoLogs\Http\Requests\UploadStatusVideoLogRequest;
 use Lithium\VideoLogs\Jobs\DeleteVideoLogAssets;
 use Lithium\VideoLogs\Jobs\ProcessVideoLog;
 use Lithium\VideoLogs\Models\VideoLog;
+use Lithium\VideoLogs\Support\LoggableTypes;
 use Lithium\VideoLogs\Support\WebhookRequest;
 
 class VideoLogController extends Controller
@@ -29,22 +30,38 @@ class VideoLogController extends Controller
     public function index(IndexVideoLogRequest $request)
     {
         $data = $request->validated();
+        $scoped = isset($data['loggable_id'], $data['loggable_type']);
 
         $query = VideoLog::query()
+            ->select('video_logs.*')
             ->selectAttributes()
-            ->when(isset($data['loggable_type']), function ($query) use ($data) {
-                return $query->where('loggable_type', $data['loggable_type']);
+            ->when($scoped, function ($query) use ($data) {
+                return $query
+                    ->where('loggable_type', $data['loggable_type'])
+                    ->where('loggable_id', $data['loggable_id']);
             })
-            ->when(isset($data['loggable_id']), function ($query) use ($data) {
-                return $query->where('loggable_id', $data['loggable_id']);
-            })
+            ->when(
+                isset($data['search']) && is_string($data['search']) && trim($data['search']) !== '',
+                function ($query) use ($data) {
+                    return LoggableTypes::applySearch($query, $data['search']);
+                },
+            )
             ->latest();
 
-        if (isset($data['per_page'])) {
-            return $query->paginate((int) $data['per_page']);
+        // Unscoped (All Videos) always paginates. Scoped lists stay unpaginated
+        // unless the client opts in with per_page (VideoList backward-compat).
+        if (! $scoped || isset($data['per_page'])) {
+            $perPage = (int) ($data['per_page'] ?? 24);
+            $paginator = $query->paginate($perPage);
+            LoggableTypes::appendLoggableNames($paginator->getCollection());
+
+            return $paginator;
         }
 
-        return $query->get();
+        $videoLogs = $query->get();
+        LoggableTypes::appendLoggableNames($videoLogs);
+
+        return $videoLogs;
     }
 
     public function store(StoreVideoLogRequest $request)
