@@ -27,6 +27,11 @@ trait ResolvesLoggable
                 return;
             }
 
+            // Unscoped index (All Videos) has no single loggable to authorize.
+            if (! $this->filled('loggable_id') || ! $this->filled('loggable_type')) {
+                return;
+            }
+
             $loggable = $this->resolveLoggable();
 
             if (! $loggable instanceof Model) {
@@ -59,6 +64,12 @@ trait ResolvesLoggable
     {
         $configured = config("video-logs.loggable_types.{$type}");
 
+        // New shape: FQCN key => ['label' => ..., 'search_columns' => ...]
+        if (is_array($configured) && is_subclass_of($type, Model::class)) {
+            return $type;
+        }
+
+        // Legacy shape: alias key => Model::class string
         if (is_string($configured) && is_subclass_of($configured, Model::class)) {
             return $configured;
         }

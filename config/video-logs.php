@@ -172,6 +172,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Loggable Types
+    |--------------------------------------------------------------------------
+    |
+    | Host models that video logs can attach to. Keys must match the morph
+    | class string stored on video_logs.loggable_type (typically the FQCN).
+    |
+    | Each entry may define:
+    | - "search_columns" (string[]): columns OR-matched for All Videos search
+    | - "label" (string|callable): display name for loggable_name on index.
+    |   A string is treated as an attribute; a callable receives the loaded
+    |   model and must return a string. When omitted, the first search column
+    |   is used as the attribute.
+    |
+    | Example:
+    |
+    | 'loggable_types' => [
+    |     App\Models\Customer::class => [
+    |         'label' => 'name',
+    |         // 'label' => fn ($customer) => "{$customer->name} ({$customer->code})",
+    |         'search_columns' => ['name', 'code'],
+    |     ],
+    | ],
+    |
+    */
+
+    'loggable_types' => [],
+
+    /*
+    |--------------------------------------------------------------------------
     | Admin Permission Key
     |--------------------------------------------------------------------------
     |

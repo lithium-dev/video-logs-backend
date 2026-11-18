@@ -18,8 +18,10 @@ class IndexVideoLogRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'loggable_id' => ['required'],
-            'loggable_type' => $this->loggableTypeRule(),
+            'loggable_id' => ['required_with:loggable_type'],
+            'loggable_type' => ['required_with:loggable_id', 'nullable', 'string', 'max:255'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ];
     }

@@ -51,5 +51,12 @@ abstract class TestCase extends Orchestra
             $table->id();
             $table->string('name')->nullable();
         });
+
+        Schema::create('customers', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->nullable();
+            $table->string('code')->nullable();
+            $table->timestamps();
+        });
     }
 }

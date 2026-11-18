@@ -2,6 +2,7 @@
 
 use Lithium\VideoLogs\Contracts\VideoStorageProvider;
 use Lithium\VideoLogs\Models\VideoLog;
+use Lithium\VideoLogs\Tests\Fixtures\Customer;
 use Lithium\VideoLogs\Tests\Fixtures\FakeVideoStorageProvider;
 use Lithium\VideoLogs\Tests\Fixtures\User;
 
@@ -76,6 +77,147 @@ it('indexes video logs filtered by loggable', function () {
 
     expect($titles)->toContain('First')
         ->and($titles)->not->toContain('Second');
+});
+
+it('indexes all video logs with pagination when unscoped', function () {
+    bindFakeProvider();
+    actingAsUser();
+
+    createVideoLog(['title' => 'First']);
+    createVideoLog(['title' => 'Second', 'loggable_id' => 2]);
+
+    $response = $this->getJson('video-logs?per_page=1');
+
+    $response->assertOk()
+        ->assertJsonPath('per_page', 1)
+        ->assertJsonPath('total', 2)
+        ->assertJsonCount(1, 'data');
+});
+
+it('searches video logs by title when indexing', function () {
+    bindFakeProvider();
+    actingAsUser();
+
+    createVideoLog(['title' => 'Alpha walk']);
+    createVideoLog(['title' => 'Beta tour', 'loggable_id' => 2]);
+
+    $response = $this->getJson('video-logs?search=Alpha');
+
+    $response->assertOk();
+
+    $titles = collect($response->json('data'))->pluck('title');
+
+    expect($titles)->toContain('Alpha walk')
+        ->and($titles)->not->toContain('Beta tour');
+});
+
+it('searches video logs by creator name when indexing', function () {
+    bindFakeProvider();
+    actingAsUser('Jane Doe');
+    createVideoLog(['title' => 'Jane clip']);
+
+    actingAsUser('Bob Smith');
+    createVideoLog(['title' => 'Bob clip', 'loggable_id' => 2]);
+
+    $response = $this->getJson('video-logs?search=Jane');
+
+    $response->assertOk();
+
+    $titles = collect($response->json('data'))->pluck('title');
+
+    expect($titles)->toContain('Jane clip')
+        ->and($titles)->not->toContain('Bob clip');
+});
+
+it('searches video logs by configured loggable columns when indexing', function () {
+    bindFakeProvider();
+    actingAsUser();
+
+    config([
+        'video-logs.loggable_types' => [
+            Customer::class => [
+                'label' => 'name',
+                'search_columns' => ['name', 'code'],
+            ],
+        ],
+    ]);
+
+    $acme = Customer::query()->create(['name' => 'Acme Corp', 'code' => 'AC-100']);
+    $beta = Customer::query()->create(['name' => 'Beta LLC', 'code' => 'BE-200']);
+
+    createVideoLog([
+        'title' => 'Acme clip',
+        'loggable_type' => Customer::class,
+        'loggable_id' => $acme->id,
+    ]);
+    createVideoLog([
+        'title' => 'Beta clip',
+        'loggable_type' => Customer::class,
+        'loggable_id' => $beta->id,
+    ]);
+
+    $byName = $this->getJson('video-logs?search=Acme');
+    $byName->assertOk();
+    expect(collect($byName->json('data'))->pluck('title')->all())->toBe(['Acme clip']);
+
+    $byCode = $this->getJson('video-logs?search=BE-200');
+    $byCode->assertOk();
+    expect(collect($byCode->json('data'))->pluck('title')->all())->toBe(['Beta clip']);
+});
+
+it('resolves loggable_name from a string label when indexing', function () {
+    bindFakeProvider();
+    actingAsUser();
+
+    config([
+        'video-logs.loggable_types' => [
+            Customer::class => [
+                'label' => 'name',
+                'search_columns' => ['name'],
+            ],
+        ],
+    ]);
+
+    $customer = Customer::query()->create(['name' => 'Acme Corp', 'code' => 'AC-100']);
+
+    createVideoLog([
+        'title' => 'Acme clip',
+        'loggable_type' => Customer::class,
+        'loggable_id' => $customer->id,
+    ]);
+
+    $response = $this->getJson('video-logs');
+
+    $response->assertOk()
+        ->assertJsonPath('data.0.loggable_name', 'Acme Corp')
+        ->assertJsonMissingPath('data.0.loggable');
+});
+
+it('resolves loggable_name from a callable label when indexing', function () {
+    bindFakeProvider();
+    actingAsUser();
+
+    config([
+        'video-logs.loggable_types' => [
+            Customer::class => [
+                'label' => fn (Customer $customer) => "{$customer->name} ({$customer->code})",
+                'search_columns' => ['name', 'code'],
+            ],
+        ],
+    ]);
+
+    $customer = Customer::query()->create(['name' => 'Acme Corp', 'code' => 'AC-100']);
+
+    createVideoLog([
+        'title' => 'Acme clip',
+        'loggable_type' => Customer::class,
+        'loggable_id' => $customer->id,
+    ]);
+
+    $response = $this->getJson('video-logs');
+
+    $response->assertOk()
+        ->assertJsonPath('data.0.loggable_name', 'Acme Corp (AC-100)');
 });
 
 it('resolves the uploader name when storing a video log', function () {
